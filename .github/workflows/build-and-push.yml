@@ -70,7 +70,7 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}
+            ${{ steps.login-ecr.outputs.registry }}/etechwinos2025-pixel/ai_playground/shopping-cart
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
