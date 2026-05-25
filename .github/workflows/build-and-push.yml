@@ -13,6 +13,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/shopping-cart
   AWS_REGION: us-east-1
+  ECR_REPOSITORY: shopping-cart
 
 jobs:
   build-and-test:
@@ -70,7 +71,7 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            ${{ steps.login-ecr.outputs.registry }}/etechwinos2025-pixel/ai_playground/shopping-cart
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
