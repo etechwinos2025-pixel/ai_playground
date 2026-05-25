@@ -12,6 +12,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/shopping-cart
+  AWS_REGION: us-east-1
 
 jobs:
   build-and-test:
@@ -21,10 +22,19 @@ jobs:
       contents: read
       packages: write
       security-events: write
+      id-token: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        if: github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-role
+          role-session-name: github-actions-session
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -48,11 +58,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Login to Amazon ECR
+        if: github.event_name == 'push'
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
@@ -88,10 +105,18 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      id-token: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-role
+          role-session-name: github-actions-session
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
