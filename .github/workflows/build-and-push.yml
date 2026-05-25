@@ -63,8 +63,9 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Extract metadata
-        id: meta
+      - name: Extract metadata (push)
+        if: github.event_name == 'push'
+        id: meta-push
         uses: docker/metadata-action@v5
         with:
           images: |
@@ -77,14 +78,24 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Extract metadata (PR)
+        if: github.event_name == 'pull_request'
+        id: meta-pr
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=pr
+            type=sha
+
       - name: Build and push Docker image
         if: github.event_name == 'push'
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-push.outputs.tags }}
+          labels: ${{ steps.meta-push.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
 
@@ -94,8 +105,8 @@ jobs:
         with:
           context: .
           push: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-pr.outputs.tags }}
+          labels: ${{ steps.meta-pr.outputs.labels }}
 
   security-scan:
     needs: build-and-test
